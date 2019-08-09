@@ -93,7 +93,7 @@ void display_marks(int client_fd, char *const username){
     {
 		
         char* tmp = strdup(line);
-		if(strcmp(username, "instructor") || strcmp(username, getfield(tmp, 1))){
+		if(strcmp(username, "instructor")==0 || strcmp(username, getfield(tmp, 1))==0){
 			send(client_fd, (void *)getfield(tmp, 1), 12, 0);
 			send(client_fd, "\t", 1, 0);
 			int total_sub = 0;
@@ -110,7 +110,7 @@ void display_marks(int client_fd, char *const username){
 			send(client_fd, " ", 1, 0);
 			send(client_fd, "\n", 1, 0);
 		}
-		if(strcmp(username, "instructor")){
+		if(strcmp(username, "instructor")==0){
 			char aggrPerBuf[10];
 			gcvt((float)total_class_marks/20, 5, aggrPerBuf);
 			send(client_fd, "Class Average : ", 16, 0);
@@ -133,7 +133,7 @@ int main(void)
 	char s[INET6_ADDRSTRLEN];
 	int rv;
 	char buf[100];
-
+	int numbytes = 0;
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
@@ -204,20 +204,65 @@ int main(void)
 
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
+			if (send(new_fd, "Hello Mr.", 9, 0) == -1)
+				perror("send");
+			bool login = false;
+			char username[20];
+			char password[20];
+			// Display_Menu(new_fd, login, username);
 			while(1){
-				if (send(new_fd, "hellp", 5, 0) == -1)
-					perror("send");
-				//printf("sent");
+				
+				if ((numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+					perror("recv");
+					exit(1);
+				}
+				if(numbytes>0){
+					if(strcmp(buf, "login")==0 && !login){
+						send(new_fd, "Enter Username: ", 16, 0);
+						send(new_fd, "\n\r", 2, 0);
+						while(1){
+							if(numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)>5)break;
+						}
+						
+						memcpy(&username[0], &buf[0], numbytes);
+						username[numbytes] = '\0';
+						send(new_fd, "Enter Password: ", 16, 0);
+						send(new_fd, "\n\r", 2, 0);
+						while(1){
+							if(numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0)>5)break;
+						}
+						memcpy(&password[0], &buf[0], numbytes);
+						password[numbytes] = '\0';
+						if(verify_credentials(&username[0],&password[0])){
+							login = true;
+							send(new_fd, "Logged In Successfully", 22, 0);
+							send(new_fd, "\n\r", 2, 0);
+						}
+						else{
+							login = false;
+							memset(&buf[0], 0, MAXDATASIZE);
+							memset(&username[0], 0, sizeof(username));
+							send(new_fd, "Invalid Entry", 13, 0);
+							send(new_fd, "\n\r", 2, 0);
+						}
+						
+					}
+					else if(strcmp(buf, "logout")==0 && login){
+						login = false;
+						memset(&buf[0], 0, MAXDATASIZE);
+						memset(&username[0], 0, sizeof(username));
+					}
+					else if(strcmp(buf, "show_marks")==0 && login){
+						display_marks(new_fd, &username[0]);
+					}
+					else{
+						send(new_fd, "Invalid Request", 15, 0);
+					}
+
+				}
+
 				sleep(2);
 			}
-			
-			
-			// while(1){
-				
-			// 	if(recv(new_fd, p) > 0){
-
-			// 	}
-			// }
 			close(new_fd);
 			exit(0);
 		}

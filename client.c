@@ -28,6 +28,13 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+void send_response(int server_id, char *console_buffer){
+	memset(console_buffer, 0, MAXDATASIZE);
+	scanf("%s", console_buffer);
+	send(server_id, console_buffer, MAXDATASIZE, 0);
+}
+
+
 int main(int argc, char *argv[])
 {
 	int sockfd, numbytes;  
@@ -35,7 +42,7 @@ int main(int argc, char *argv[])
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	char s[INET6_ADDRSTRLEN];
-
+	char console_buffer[MAXDATASIZE];
 	if (argc != 2) {
 	    fprintf(stderr,"usage: client hostname\n");
 	    exit(1);
@@ -77,22 +84,33 @@ int main(int argc, char *argv[])
 	printf("client: connecting to %s\n", s);
 
 	freeaddrinfo(servinfo); // all done with this structure
-
-	while(1){
-		if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-			perror("recv");
-			exit(1);
-		}
-		buf[numbytes] = '\0';
-
-		if(buf[0] != '\0')printf("client: received '%s'\n",buf);
+	
+	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+		perror("recv");
+		exit(1);
 	}
-	
 
+	buf[numbytes] = '\0';
+	if(buf[0] != '\0')printf("client: received '%s'\n",buf);
 	
-	// while(1){
+	while(1){
+		send_response(sockfd, &console_buffer[0]);
+		memset(&buf[0], 0, MAXDATASIZE);
 		
-	// }
+		while(1){
+			if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+				perror("recv");
+				exit(1);
+			}
+			if(strcmp(buf, "\n\r")==0)break;
+			buf[numbytes] = '\0';
+			if(numbytes>0)printf("%s",buf);
+			memset(&buf[0], 0, MAXDATASIZE);
+			numbytes = 0;
+			
+		}
+		printf("exited");
+	}
 
 	close(sockfd);
 
