@@ -72,33 +72,55 @@ bool verify_credentials(char *const username, char *const password){
 	return false;
 }
 
-void display_all_marks(int client_fd){
-	FILE* marks = fopen("student_marks", "r");
+void display_marks(int client_fd, char *const username){
+	FILE* marks = fopen("student_marks.csv", "r");
 	char line[NO_OF_USER];
 	char *sub_number;
 	int sub_number_int;
-	send(client_fd, "Name", 12, 0);
+	send(client_fd, "Name", 4, 0);
+	send(client_fd, "        ", 8, 0);
 	send(client_fd, "\t", 1, 0);
 	for(int i=0;i<5;i++){
 		send(client_fd, "SUB", 3, 0);
 		sub_number_int = i+1;
-		send(client_fd, (void *)&sub_number_int, 3, 0);
+		send(client_fd, (void *)&sub_number_int, 2, 0);
 		send(client_fd, "\t", 1, 0);
 	}
-	
+	send(client_fd, "AggrPer", 7, 0);
+	send(client_fd, "\n", 1, 0);
+	int total_class_marks = 0;
 	while (fgets(line, NO_OF_USER, marks))
     {
+		
         char* tmp = strdup(line);
-        send(client_fd, (void *)getfield(tmp, 1), 12, 0);
-		send(client_fd, "\t", 1, 0);
-		for(int i=0;i<5;i++){
-			send(client_fd, (void *)getfield(tmp, i+2), 3, 0);
+		if(strcmp(username, "instructor") || strcmp(username, getfield(tmp, 1))){
+			send(client_fd, (void *)getfield(tmp, 1), 12, 0);
 			send(client_fd, "\t", 1, 0);
+			int total_sub = 0;
+			for(int i=0;i<5;i++){
+				total_sub = total_sub + atoi(getfield(tmp,i+2));
+				send(client_fd, (void *)getfield(tmp, i+2), 3, 0);
+				send(client_fd, "  ", 2, 0);
+				send(client_fd, "\t", 1, 0);
+			}
+			char aggrPerBuf[10];
+			total_class_marks = total_class_marks + total_sub;
+			gcvt((float)total_sub/5.0, 4, aggrPerBuf);
+			send(client_fd, &aggrPerBuf[0], 5, 0);
+			send(client_fd, " ", 1, 0);
+			send(client_fd, "\n", 1, 0);
 		}
-		send(client_fd, "\n", 1, 0);
+		if(strcmp(username, "instructor")){
+			char aggrPerBuf[10];
+			gcvt((float)total_class_marks/20, 5, aggrPerBuf);
+			send(client_fd, "Class Average : ", 16, 0);
+			send(client_fd, &aggrPerBuf[0], 6, 0);
+			send(client_fd, "\n", 1, 0);
+		}
         free(tmp);
     }
 }
+
 
 int main(void)
 {
