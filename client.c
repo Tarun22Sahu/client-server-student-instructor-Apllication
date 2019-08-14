@@ -30,6 +30,7 @@ void *get_in_addr(struct sockaddr *sa)
 
 void send_response(int server_id, char *console_buffer){
 	memset(console_buffer, 0, MAXDATASIZE);
+	printf(">>");
 	scanf("%s", console_buffer);
 	send(server_id, console_buffer, MAXDATASIZE, 0);
 }
@@ -95,21 +96,28 @@ int main(int argc, char *argv[])
 	
 	while(1){
 		send_response(sockfd, &console_buffer[0]);
-		memset(&buf[0], 0, MAXDATASIZE);
+		memset(&buf[0], '\0', MAXDATASIZE);
 		
 		while(1){
 			if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
 				perror("recv");
 				exit(1);
 			}
-			if(strcmp(buf, "\n\r")==0)break;
+			//printf("Asdasd  %s ",buf);
+			//strcmp(buf, "\n\r")==0
+			//if(numbytes>1&&(buf[numbytes-1]=='\r'))break;
+			//if(strcmp(buf, "\n\r")==0)break;
 			buf[numbytes] = '\0';
-			if(numbytes>0)printf("%s",buf);
-			memset(&buf[0], 0, MAXDATASIZE);
-			numbytes = 0;
+			if(numbytes>0){
+				printf("%s",buf);
+				memset(&buf[0], '\0', MAXDATASIZE);
+				numbytes = 0;
+				break;
+			}
+			
 			
 		}
-		printf("exited");
+		//printf("  <received>\n");
 	}
 
 	close(sockfd);
