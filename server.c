@@ -49,8 +49,8 @@ const char* getfield(char* line, int num)
 {
     const char* tok;
     for (tok = strtok(line, ",");
-            tok && *tok;
-            tok = strtok(NULL, ",\n"))
+    		tok && *tok;
+            tok = strtok(NULL, ","))
     {
         if (!--num)
             return tok;
@@ -72,35 +72,46 @@ bool verify_credentials(char *const username, char *const password){
 	return false;
 }
 
-void display_marks(int client_fd, char *const username){
+void display_marks(int client_fd, char* username){
 	FILE* marks = fopen("student_marks.csv", "r");
 	char line[NO_OF_USER];
-	char *sub_number;
+	char sub_number[5];
 	int sub_number_int;
 	send(client_fd, "Name", 4, 0);
 	send(client_fd, "        ", 8, 0);
-	send(client_fd, "\t", 1, 0);
+	//send(client_fd, "\t", 1, 0);
 	//send(client_fd,username,5,0);
 	for(int i=0;i<5;i++){
 		send(client_fd, "SUB", 3, 0);
 		sub_number_int = i+1;
-		send(client_fd, (void *)&sub_number_int, 2, 0);
+		char sub_no[5];
+		//itoa(sub_number_int,sub_no,10);
+		snprintf (sub_no, sizeof(sub_no), "%d",sub_number_int);
+		send(client_fd, sub_no, 1, 0);
 		send(client_fd, "\t", 1, 0);
 	}
 	send(client_fd, "AggrPer", 7, 0);
-	send(client_fd, "\n", 1, 0);
+	//send(client_fd, "\n", 1, 0);
 	int total_class_marks = 0;
 	while (fgets(line, NO_OF_USER, marks))
     {
-		
+		//send(client_fd,username,5,0);
+        //printf("asdfsad%s",username);
+        //exit(1);
         char* tmp = strdup(line);
+        printf("%s", tmp);
+        printf("%lu", sizeof(tmp));
+        
 		if(strcmp(username, "instructor")==0 || strcmp(username, getfield(tmp, 1))==0){
-			send(client_fd, (void *)getfield(tmp, 1), 12, 0);
+			
+			send(client_fd,"adfsdf",6,0);
+			send(client_fd, getfield(tmp, 1), 12, 0);
 			send(client_fd, "\t", 1, 0);
+			send(client_fd,"asdfsdfe",6,0);
 			int total_sub = 0;
 			for(int i=0;i<5;i++){
 				total_sub = total_sub + atoi(getfield(tmp,i+2));
-				send(client_fd, (void *)getfield(tmp, i+2), 3, 0);
+				send(client_fd, getfield(tmp, i+2), 3, 0);
 				send(client_fd, "  ", 2, 0);
 				send(client_fd, "\t", 1, 0);
 			}
@@ -251,25 +262,23 @@ int main(void)
 						send(new_fd, "\n\r", 2, 0);
 						wait_user=true;
 
-						process_open=false;
-
 					}
-					else if(wait_user && process_open)
+					else if(wait_user)
 					{
+
 						memcpy(&username[0], &buffer_Recv[0], numbytes);
 						username[numbytes] = '\0';
 						send(new_fd, "Enter password: ", 16, 0);
 						send(new_fd, "\n\r", 2, 0);
-
 						wait_user=false;
 						wait_pass=true;
-						process_open=false;
 					}
-					else if(wait_pass && process_open)
+					else if(wait_pass)
 					{
 						memcpy(&password[0], &buffer_Recv[0], numbytes);
 						password[numbytes] = '\0';
-						if(verify_credentials(&username[0],&password[0])){
+						
+						if(verify_credentials(username,password)){
 							login = true;
 							send(new_fd, "Logged In Successfully", 22, 0);
 							send(new_fd, "\n\r", 2, 0);
@@ -277,7 +286,7 @@ int main(void)
 						else{
 							login = true;//change this 
 							memset(&buf[0], 0, MAXDATASIZE);
-							memset(&username[0], 0, sizeof(username));
+							//memset(&username[0], 0, sizeof(username));
 							send(new_fd, "Invalid Entry", 13, 0);
 							send(new_fd, "\n\r", 2, 0);
 						}
@@ -290,10 +299,13 @@ int main(void)
 						memset(&buffer_Recv[0], '\0', MAXDATASIZE);
 						memset(&username[0], '\0', sizeof(username));
 						memset(&password[0], '\0', sizeof(password));
+						send(new_fd, "logged out!!", 15, 0);
+						send(new_fd, "\n\r", 2, 0);
 					}
 
 					else if(strcmp(buffer_Recv, "show_marks")==0 && login){
-						display_marks(new_fd, &username[0]);
+
+						display_marks(new_fd, username);
 						send(new_fd, "\n\r", 2, 0);
 					}
 
@@ -301,7 +313,6 @@ int main(void)
 						send(new_fd, "Invalid Request", 15, 0);
 						send(new_fd, "\n\r", 2, 0);
 					}
-					recv_open=true;
 					process_open=false;
 					numbytes=0;
 

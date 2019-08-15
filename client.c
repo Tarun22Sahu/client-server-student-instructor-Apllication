@@ -105,21 +105,28 @@ int main(int argc, char *argv[])
 			}
 			//printf("Asdasd  %s ",buf);
 			//strcmp(buf, "\n\r")==0
-			//if(numbytes>1&&(buf[numbytes-1]=='\r'))break;
-			//if(strcmp(buf, "\n\r")==0)break;
-			buf[numbytes] = '\0';
-			if(numbytes>0){
+			if((buf[numbytes-1]=='\r')){
 				printf("%s",buf);
 				memset(&buf[0], '\0', MAXDATASIZE);
 				numbytes = 0;
 				break;
+			}
+			//if(strcmp(buf, "\n\r")==0)break;
+			
+			buf[numbytes] = '\0';
+			if(numbytes>0){
+				printf("%s",buf);
+				//printf("< num >%d",numbytes);
+				memset(&buf[0], '\0', MAXDATASIZE);
+				numbytes = 0;
+				//break;
 			}
 			
 			
 		}
 		//printf("  <received>\n");
 	}
-
+	printf("  <received>\n");
 	close(sockfd);
 
 	return 0;
